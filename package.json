@@ -1,0 +1,9 @@
+{
+  "name": "metadex",
+  "private": true,
+  "version": "0.1.0",
+  "description": "MetaDex — Most Effective Tactic Available. A Pokemon battle-analysis assistant.",
+  "scripts": {
+    "test": "pnpm -r test"
+  }
+}

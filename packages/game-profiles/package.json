@@ -1,0 +1,7 @@
+{
+  "name": "@metadex/game-profiles",
+  "version": "0.1.0",
+  "description": "Per-game mechanic profiles. The spine of multi-game support.",
+  "type": "module",
+  "main": "src/game-profiles.ts"
+}
