@@ -107,8 +107,11 @@ TS side uses pnpm workspaces; apps/api is its own Python project (uv/poetry).
 ## Current state
 
 - Phase 1 (Foundations): DONE.
-- Phase 2 (Data core): engine DONE (12 tests green); game-profiles DONE.
-  Remaining: PokeAPI seeder ETL.
+- Phase 2 (Data core): DONE. Engine (12 tests green), game-profiles, and the
+  PokeAPI seeder ETL all complete. Seeder (`apps/api/app/seed`) loads base
+  stats/types/abilities into SQLite — idempotent, disk-cached, rate-limited,
+  logged; Gen 1 seeded + verified. `apps/api` scaffolded (FastAPI via uv).
+- NEXT: Phase 3 (run Scarlet/Violet through the engine) + Phase 4 (analyzer API).
 
 ---
 

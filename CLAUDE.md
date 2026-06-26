@@ -87,11 +87,15 @@ metadex/
 
 - DONE: `packages/engine` built + 12 tests green (effectiveness, stats, speed).
 - DONE: `packages/game-profiles` schema + Champions & Scarlet/Violet profiles.
-- TODO at scaffold time: create empty `apps/web` (Vite+React+TS+Tailwind) and
-  `apps/api` (FastAPI). Add tsconfigs/workspace wiring as needed.
-- NEXT build task: PokeAPI seeder (ETL) in `apps/api` — pull base stats/types/
-  moves into the DB so `calcStats` is fed automatically. Cache locally; respect
-  PokeAPI fair-use (don't hammer it live per request).
+- DONE: `apps/api` scaffolded (FastAPI, uv-managed; `/health` endpoint).
+- DONE: PokeAPI seeder (ETL) in `apps/api/app/seed` — pulls base stats/types/
+  abilities into SQLite (`data/metadex.db`, gitignored). Idempotent (UPSERTs),
+  disk-cached (`.cache/`, no re-download), rate-limited, and logged. Stores
+  engine-ready values (capitalized types, `hp/atk/def/spa/spd/spe`). Gen 1 (151)
+  seeded + verified against known stats. Run: `uv run python -m app.seed.seed`
+  (`--limit` to scale up, `--refresh` to bypass cache).
+- TODO at scaffold time: create empty `apps/web` (Vite+React+TS+Tailwind).
+- NEXT: seed full dex + add a typed loader/read layer over the DB for the engine.
 - THEN: Phase 3 (run a 2nd game through the engine), Phase 4 (analyzer API).
 
 ---

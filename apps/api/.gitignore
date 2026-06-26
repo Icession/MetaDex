@@ -1,0 +1,9 @@
+# uv / Python
+.venv/
+__pycache__/
+*.pyc
+
+# Build artifacts (regenerable from the seeder)
+data/*.db
+data/*.db-journal
+.cache/
