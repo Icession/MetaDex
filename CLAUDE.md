@@ -79,11 +79,16 @@ metadex/
 ## Commands
 
 - Install everything: `pnpm install`
+- All TS tests: `pnpm -r test`
 - Engine tests: `pnpm --filter @metadex/engine test`
+- Analyzer tests: `pnpm --filter @metadex/analyzer test`
+- Run the API (from `apps/api`): `uv run uvicorn app.main:app --port 8000`
+- Matchup demo (API must be running):
+  `pnpm --filter @metadex/analyzer demo -- --game champions --me "Pikachu,Onix" --vs "Staryu,Charizard"`
 
 ---
 
-## Current state (Phase 2 — Data core)
+## Current state (Phase 3 — First matchup analyzer)
 
 - DONE: `packages/engine` built + 12 tests green (effectiveness, stats, speed).
 - DONE: `packages/game-profiles` schema + Champions & Scarlet/Violet profiles.
@@ -94,9 +99,21 @@ metadex/
   engine-ready values (capitalized types, `hp/atk/def/spa/spd/spe`). Gen 1 (151)
   seeded + verified against known stats. Run: `uv run python -m app.seed.seed`
   (`--limit` to scale up, `--refresh` to bypass cache).
+- DONE: data bridge — `apps/api/app/data/loader.py` reshapes DB rows into
+  engine-ready records; `POST /pokemon/batch` serves a whole team in one
+  round-trip (case-insensitive names; unknowns returned in `missing`).
+- DONE: `packages/analyzer` — pure `analyzeMatchup({profileId, myTeam,
+  enemyTeam, lookup})`. Uses the engine for type/speed math and consults the
+  game profile (gates speed/item/gimmick advice) to return best lead + worst to
+  avoid, each with a plain-English reason. Data arrives via an injected `lookup`
+  so the core stays pure. 4 tests green. NOTE: no movesets seeded yet, so
+  offense is approximated from each Pokemon's STAB *typing* (reasons say so).
+- DONE: `packages/analyzer/src/cli.ts` — wires the live `/pokemon/batch`
+  endpoint to the analyzer for a real Gen 1 demo (the only place network lives).
 - TODO at scaffold time: create empty `apps/web` (Vite+React+TS+Tailwind).
-- NEXT: seed full dex + add a typed loader/read layer over the DB for the engine.
-- THEN: Phase 3 (run a 2nd game through the engine), Phase 4 (analyzer API).
+- NEXT: seed full dex (beyond Gen 1) + seed movesets so offense uses real moves.
+- THEN: Phase 4 (analyzer API — decide how the TS analysis is served), Phase 5
+  (AI layer / mascot narration over the engine's exact numbers).
 
 ---
 

@@ -111,7 +111,16 @@ TS side uses pnpm workspaces; apps/api is its own Python project (uv/poetry).
   PokeAPI seeder ETL all complete. Seeder (`apps/api/app/seed`) loads base
   stats/types/abilities into SQLite — idempotent, disk-cached, rate-limited,
   logged; Gen 1 seeded + verified. `apps/api` scaffolded (FastAPI via uv).
-- NEXT: Phase 3 (run Scarlet/Violet through the engine) + Phase 4 (analyzer API).
+- Phase 3 (First matchup analyzer): DONE. A data bridge (`POST /pokemon/batch`
+  over a SQLite read layer) feeds engine-ready records to a pure TS analyzer
+  (`packages/analyzer`) that computes type/speed matchups via the engine,
+  consults the game profile (Champions vs Scarlet/Violet), and returns the best
+  lead + worst to avoid with plain-English reasons. 4 tests green; a `cli.ts`
+  runner drives it against the live API for a real Gen 1 demo. Both Champions
+  and Scarlet/Violet run through the one engine — the multi-game proof for this
+  phase. Caveat: offense uses STAB *typing* (no movesets seeded yet).
+- NEXT: Phase 4 (analyzer API — decide how the TS analysis gets served, since
+  the engine is TS and FastAPI is Python) + seed movesets/full dex.
 
 ---
 

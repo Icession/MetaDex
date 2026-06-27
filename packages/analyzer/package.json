@@ -1,0 +1,22 @@
+{
+  "name": "@metadex/analyzer",
+  "version": "0.1.0",
+  "description": "Matchup analyzer: turns engine + game-profile output into lead/avoid advice. Pure, no I/O.",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "demo": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@metadex/engine": "workspace:*",
+    "@metadex/game-profiles": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.0"
+  }
+}
