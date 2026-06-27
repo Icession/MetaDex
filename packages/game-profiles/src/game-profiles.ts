@@ -2,10 +2,10 @@
  * game-profiles — the spine of multi-game support.
  *
  * THE IDEA
- * Every Pokemon game has different mechanics. Champions lets you freely edit a
- * Pokemon's stats and nature and has NO held items or in-battle consumables.
- * Scarlet/Violet makes you EARN EVs, and DOES have held items, abilities, and
- * a Terastal gimmick. Pokemon GO uses a totally different CP/IV system.
+ * Every Pokemon game has different mechanics. Champions trains EV/IV stats
+ * (fixed, not freely editable) and has held items set before battle, but NO
+ * in-battle consumables. Scarlet/Violet also earns EVs and has held items,
+ * abilities, and a Terastal gimmick. Pokemon GO uses a different CP/IV system.
  *
  * Instead of scattering "if (game === 'champions')" checks across the codebase,
  * each game declares ONE profile describing which mechanics exist. The engine and
@@ -72,7 +72,8 @@ export interface GameProfile {
 }
 
 // ----- profile 1: Pokemon Champions ------------------------------------------
-// Editable stats + natures, NO items of any kind. Mega is back.
+// Trained EV/IV stats + natures, held items set pre-battle (no in-battle
+// consumables). Mega is back.
 
 export const CHAMPIONS: GameProfile = {
   id: "champions",
@@ -82,23 +83,23 @@ export const CHAMPIONS: GameProfile = {
   battleFormats: ["1v1", "2v2"],
   levelCap: 100,
 
-  statSystem: "free_points",
+  statSystem: "ev_iv",
   statBudget: { total: 510, perStat: 252 }, // tune to the game's real cap
 
   hasNatures: true,
   hasAbilities: true,
-  hasHeldItems: false,        // <- key difference
-  hasInBattleItems: false,    // <- no consumables
-  editableOutsideBattle: true,// <- freely re-spec stats/nature
+  hasHeldItems: true,         // <- items set before battle
+  hasInBattleItems: false,    // <- no mid-battle item throwing
+  editableOutsideBattle: false,// <- stats are trained & fixed, not re-spec'd
 
   gimmick: "mega",
 
   advice: {
     matchup: true,
     speedTiers: true,
-    statAllocation: true,   // becomes a FREE-allocation optimizer
+    statAllocation: true,   // EV-spread optimizer (trained, capped)
     natureAdvisor: true,
-    itemAdvisor: false,     // <- advisor stays silent: no items exist
+    itemAdvisor: true,      // <- items exist (set pre-battle)
     moveAdvisor: true,
   },
 };
@@ -155,6 +156,6 @@ export function getProfile(id: string): GameProfile {
  *     return profile.hasHeldItems && profile.advice.itemAdvisor;
  *   }
  *
- * For Champions this returns false, so the UI never shows item advice.
- * For Scarlet/Violet it returns true. No engine changes required.
+ * For Champions this now returns true (items are set before battle), so the UI
+ * shows item advice. For Scarlet/Violet it also returns true. No engine changes.
  */
