@@ -4,6 +4,10 @@
   "description": "Matchup analyzer: turns engine + game-profile output into lead/avoid advice. Pure, no I/O.",
   "type": "module",
   "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",

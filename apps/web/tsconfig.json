@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "@metadex/analyzer/client": ["../../packages/analyzer/src/client.ts"],
+      "@metadex/engine": ["../../packages/engine/src/index.ts"],
+      "@metadex/game-profiles": ["../../packages/game-profiles/src/game-profiles.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

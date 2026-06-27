@@ -7,12 +7,28 @@ only reads rows and reshapes them via app.data.loader.
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .data.loader import get_many
 from .seed.db import connect
 
 app = FastAPI(title="MetaDex API", version="0.1.0")
+
+# Browsers block a Vite-served page from calling this API cross-origin unless we
+# opt in here. The CLI (Node) isn't subject to CORS, so this is purely what
+# makes the web companion's data fetch work. Dev origins only; tighten for prod.
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",   # Vite dev server (default)
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")

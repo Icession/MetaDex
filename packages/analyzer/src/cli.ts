@@ -1,27 +1,23 @@
 /**
- * cli.ts — the one place network lives.
+ * cli.ts — the terminal front-end for the matchup advisor.
  *
- * Wires the live data bridge (POST /pokemon/batch) to the pure analyzer:
- *   1. parse the two teams from the command line
- *   2. fetch every name from the API in ONE round-trip
- *   3. build a sync Map-backed lookup and hand it to analyzeMatchup
- *   4. print the advice
+ * All the fetch-then-analyze work now lives in the shared, reusable orchestrator
+ * (`@metadex/analyzer/client`), so this file is just the CLI shell:
+ *   1. parse the two teams + game from the command line
+ *   2. call runMatchup (one round-trip to the data bridge, then the pure core)
+ *   3. pretty-print the advice
  *
- * The analyzer stays pure; this file does the I/O so the core never has to.
+ * The web app uses the SAME runMatchup — this file no longer owns any network
+ * code, it only owns argv parsing and console formatting.
  *
  * Run (from the repo root, with the API running on :8000):
  *   pnpm --filter @metadex/analyzer demo -- \
  *     --game champions --me "Pikachu,Onix" --vs "Staryu,Charizard"
  */
 
-import { analyzeMatchup, type PokemonData } from "./index";
+import { runMatchup, type RunMatchupResult } from "./client";
 
 const API_URL = process.env.METADEX_API_URL ?? "http://localhost:8000";
-
-interface BatchResponse {
-  found: PokemonData[];
-  missing: string[];
-}
 
 // ----- argument parsing ------------------------------------------------------
 
@@ -69,31 +65,9 @@ Notes:
   - Override the API URL with METADEX_API_URL.
 `.trim();
 
-// ----- the data bridge call --------------------------------------------------
-
-async function fetchTeams(names: string[]): Promise<BatchResponse> {
-  let res: Response;
-  try {
-    res = await fetch(`${API_URL}/pokemon/batch`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ names }),
-    });
-  } catch {
-    throw new Error(
-      `Could not reach the API at ${API_URL}. Is it running?\n` +
-        `  cd apps/api && uv run uvicorn app.main:app`,
-    );
-  }
-  if (!res.ok) {
-    throw new Error(`API returned ${res.status} ${res.statusText}`);
-  }
-  return (await res.json()) as BatchResponse;
-}
-
 // ----- pretty printing -------------------------------------------------------
 
-function printResult(result: ReturnType<typeof analyzeMatchup>): void {
+function printResult(result: RunMatchupResult): void {
   console.log(`\n=== MetaDex matchup — ${result.game} ===\n`);
 
   if (result.bestLead) {
@@ -138,14 +112,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  // One round-trip for every name on both teams.
-  const { found } = await fetchTeams([...myTeam, ...enemyTeam]);
-
-  // Build the sync lookup the pure core expects: name -> record.
-  const byName = new Map(found.map((p) => [p.name.toLowerCase(), p]));
-  const lookup = (name: string): PokemonData | undefined => byName.get(name.toLowerCase());
-
-  const result = analyzeMatchup({ profileId, myTeam, enemyTeam, lookup });
+  const result = await runMatchup({ apiUrl: API_URL, profileId, myTeam, enemyTeam });
   printResult(result);
 }
 

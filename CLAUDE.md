@@ -85,10 +85,54 @@ metadex/
 - Run the API (from `apps/api`): `uv run uvicorn app.main:app --port 8000`
 - Matchup demo (API must be running):
   `pnpm --filter @metadex/analyzer demo -- --game champions --me "Pikachu,Onix" --vs "Staryu,Charizard"`
+- Web smoke proof (API must be running): `pnpm --filter @metadex/web dev` → open the
+  printed `http://localhost:5173`
 
 ---
 
-## Current state (Phase 3 — First matchup analyzer)
+## How the analysis is served (Phase 4 decision)
+
+The analyzer is TypeScript; the API is Python. Rather than port the analyzer to
+Python (which would create a SECOND source of truth for the same numbers —
+breaking guiding rules #1 and #2), **analysis runs client-side as a TS library**
+and **Python stays data-only**:
+
+- `@metadex/analyzer` (pure) computes the matchup. `@metadex/analyzer/client`
+  (impure subpath, the ONE place network lives) fetches a team from the data
+  bridge and runs the pure core. Both the CLI and the web app call this same
+  `runMatchup` — no duplicated fetch/analyze logic.
+- The Python API serves data only (`/pokemon/batch`). It does NO analysis.
+- **Narration seam (Phase 5):** the AI layer is Python, but it never needs to do
+  math — the browser runs the analyzer, then POSTs the *already-computed*
+  structured result to a future Python `/narrate`. The LLM only voices exact
+  numbers. This is how "Python = data-only" coexists with "AI orchestration is
+  Python" without ever breaking rule #1.
+- This consciously REVISES the roadmap's old "FastAPI serves matchup endpoints"
+  line: there is no matchup endpoint. A Node `/analyze` HTTP service is possible
+  later if a non-JS client ever needs analysis, but nothing does today (YAGNI).
+
+Known seams (deliberate): `PokemonOut` (Pydantic) and `PokemonData` (TS) are
+hand-synced; the pure analyzer core stays browser-safe (no `process`/`fs` in its
+import chain) so Vite bundles it as-is.
+
+## Current state (Phase 4 — Analyzer serving + web seam)
+
+- DONE: `@metadex/analyzer/client` — shared impure `runMatchup` orchestrator;
+  `cli.ts` is now a thin caller of it (no behavior change to the demo).
+- DONE: data-layer caching — `apps/api/app/data/loader.py` memoizes resolved
+  records in a module-level dict keyed by lowercased name (hits only, no TTL, no
+  shared connection — sidesteps sqlite3's cross-thread rule). Repeat lookups
+  skip the DB. `clear_cache()` resets it after a reseed.
+- DONE: CORS — `CORSMiddleware` in `main.py` for the Vite dev origins so the
+  browser's data fetch isn't blocked.
+- DONE: `apps/web` scaffolded (Vite + React + TS + Tailwind v4). One smoke page
+  runs `runMatchup` against the live API with hardcoded teams and renders the
+  advice — proving browser → API → engine end-to-end. Vite aliases the raw-TS
+  `@metadex/*` sources so it transpiles them. The real matchup UI is Phase 7.
+- NEXT: Phase 5 (AI layer / mascot narration over the engine's exact numbers via
+  the `/narrate` seam) + seed movesets/full dex.
+
+## Earlier state (Phase 3 — First matchup analyzer)
 
 - DONE: `packages/engine` built + 12 tests green (effectiveness, stats, speed).
 - DONE: `packages/game-profiles` schema + Champions & Scarlet/Violet profiles.
@@ -108,12 +152,8 @@ metadex/
   avoid, each with a plain-English reason. Data arrives via an injected `lookup`
   so the core stays pure. 4 tests green. NOTE: no movesets seeded yet, so
   offense is approximated from each Pokemon's STAB *typing* (reasons say so).
-- DONE: `packages/analyzer/src/cli.ts` — wires the live `/pokemon/batch`
-  endpoint to the analyzer for a real Gen 1 demo (the only place network lives).
-- TODO at scaffold time: create empty `apps/web` (Vite+React+TS+Tailwind).
-- NEXT: seed full dex (beyond Gen 1) + seed movesets so offense uses real moves.
-- THEN: Phase 4 (analyzer API — decide how the TS analysis is served), Phase 5
-  (AI layer / mascot narration over the engine's exact numbers).
+- DONE: `packages/analyzer/src/cli.ts` — drives the analyzer for a real Gen 1
+  demo (now via the shared `@metadex/analyzer/client`; see Phase 4 above).
 
 ---
 

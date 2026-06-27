@@ -5,5 +5,8 @@
   "description": "MetaDex — Most Effective Tactic Available. A Pokemon battle-analysis assistant.",
   "scripts": {
     "test": "pnpm -r test"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
   }
 }
