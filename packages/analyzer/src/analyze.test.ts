@@ -15,6 +15,14 @@ const FIXTURES: Record<string, PokemonData> = {
   onix:      { id: 95,  name: "onix",      types: ["Rock", "Ground"], base: { hp: 35, atk: 45, def: 160, spa: 30,  spd: 45, spe: 70 } },
   staryu:    { id: 120, name: "staryu",    types: ["Water"],          base: { hp: 30, atk: 45, def: 55,  spa: 70,  spd: 55, spe: 85 } },
   charizard: { id: 6,   name: "charizard", types: ["Fire", "Flying"], base: { hp: 78, atk: 84, def: 78,  spa: 109, spd: 85, spe: 100 } },
+
+  // A deliberately even matchup: both of my mons score exactly 0 vs both enemies
+  // (each lands one super-effective type but is hit back for the same, and both
+  // are outsped), so the lead/avoid scores tie. Used by the tie-handling test.
+  gengar:    { id: 94,  name: "gengar",    types: ["Ghost", "Poison"],  base: { hp: 60, atk: 65, def: 60, spa: 130, spd: 75,  spe: 110 } },
+  snorlax:   { id: 143, name: "snorlax",   types: ["Normal"],           base: { hp: 160, atk: 110, def: 65, spa: 65, spd: 110, spe: 30 } },
+  alakazam:  { id: 65,  name: "alakazam",  types: ["Psychic"],          base: { hp: 55, atk: 50, def: 45, spa: 135, spd: 95,  spe: 120 } },
+  starmie:   { id: 121, name: "starmie",   types: ["Water", "Psychic"], base: { hp: 60, atk: 75, def: 85, spa: 100, spd: 85,  spe: 115 } },
 };
 
 /** Injected lookup over the fixtures (case-insensitive, like the real bridge). */
@@ -60,5 +68,33 @@ describe("analyzeMatchup (Champions)", () => {
     // the player to give their lead one. This proves the profile fix flows
     // through to advice.
     expect(notes.some((n) => n.includes("Held items are set before battle"))).toBe(true);
+  });
+});
+
+describe("analyzeMatchup — tie handling (regression)", () => {
+  // Regression for the bug where a tie returned the SAME Pokemon as both
+  // bestLead and worstToAvoid. With Gengar & Snorlax both scoring 0 vs
+  // Alakazam & Starmie, the lead must never reappear as the avoid pick.
+  const run = () =>
+    analyzeMatchup({
+      profileId: "champions",
+      myTeam: ["Gengar", "Snorlax"],
+      enemyTeam: ["Alakazam", "Starmie"],
+      lookup,
+    });
+
+  test("never returns the lead as the avoid pick when scores tie", () => {
+    const { bestLead, worstToAvoid } = run();
+    expect(bestLead?.name).toBe("gengar");
+    expect(bestLead?.score).toBe(0); // confirms we're on the all-tie path
+    // The whole team grades out equally, so there is no clearly-worse pick.
+    expect(worstToAvoid).toBeNull();
+    // The invariant that must always hold: lead is excluded from avoid.
+    expect(worstToAvoid?.name).not.toBe(bestLead?.name);
+  });
+
+  test("explains why there is no avoid pick instead of inventing one", () => {
+    const { notes } = run();
+    expect(notes.some((n) => n.includes("grade out equally"))).toBe(true);
   });
 });

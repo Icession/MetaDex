@@ -159,6 +159,10 @@ function fmt(m: number): string {
   return (Number.isInteger(m) ? m.toString() : m.toFixed(2)) + "x";
 }
 
+function round(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 /** Short verdict word for a multiplier (kept separate from the engine's UI
  *  label so the reason text reads naturally next to the number). */
 function verdict(m: number): string {
@@ -253,31 +257,43 @@ export function analyzeMatchup(input: AnalyzeInput): MatchupResult {
     return { game: profile.displayName, bestLead: null, worstToAvoid: null, unknownNames, notes };
   }
 
-  const evals = mine.map((mon) => ({ mon, ev: evaluate(mon, enemies) }));
+  const evals = mine.map((mon, idx) => ({ mon, ev: evaluate(mon, enemies), idx }));
 
-  let best = evals[0];
-  let worst = evals[0];
-  for (const e of evals) {
-    if (e.ev.score > best.ev.score) best = e;
-    if (e.ev.score < worst.ev.score) worst = e;
-  }
+  // Rank by score (highest first); ties broken by original team order so the
+  // result is deterministic. The lead is ranked[0]; the avoid candidate is the
+  // lowest-ranked. Because those are different array positions, the lead is
+  // structurally excluded from the avoid pick — it can never be returned as
+  // both (the bug this guards against, which surfaced when all scores tied).
+  const ranked = [...evals].sort((a, b) => b.ev.score - a.ev.score || a.idx - b.idx);
 
+  const lead = ranked[0];
   const bestLead: Pick = {
-    name: best.mon.data.name,
-    score: Math.round(best.ev.score * 100) / 100,
-    reason: leadReason(best.ev, profile),
+    name: lead.mon.data.name,
+    score: round(lead.ev.score),
+    reason: leadReason(lead.ev, profile),
   };
 
-  // With only one candidate, "best" and "worst" would be the same Pokemon —
-  // calling it both is noise, so we omit the avoid pick.
-  const worstToAvoid: Pick | null =
-    mine.length < 2
-      ? null
-      : {
-          name: worst.mon.data.name,
-          score: Math.round(worst.ev.score * 100) / 100,
-          reason: avoidReason(worst.ev),
-        };
+  let worstToAvoid: Pick | null = null;
+  if (ranked.length < 2) {
+    // A one-Pokemon team has no alternative to compare the lead against.
+    notes.push("Only one Pokemon on your team, so there's no alternative to avoid.");
+  } else {
+    const avoid = ranked[ranked.length - 1];
+    if (avoid.ev.score < lead.ev.score) {
+      worstToAvoid = {
+        name: avoid.mon.data.name,
+        score: round(avoid.ev.score),
+        reason: avoidReason(avoid.ev),
+      };
+    } else {
+      // Every option grades out equally (the lead's score == the lowest score),
+      // so nothing is clearly worse. Naming an "avoid" here would be misleading,
+      // so we say there's no standout instead of inventing one.
+      notes.push(
+        "Your leads grade out equally here — no single Pokemon stands out as the one to avoid.",
+      );
+    }
+  }
 
   return { game: profile.displayName, bestLead, worstToAvoid, unknownNames, notes };
 }
